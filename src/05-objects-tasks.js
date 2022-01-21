@@ -6,7 +6,6 @@
  *                                                                                                *
  ************************************************************************************************ */
 
-
 /**
  * Returns the rectangle object with width and height parameters and getArea() method
  *
@@ -20,10 +19,15 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  return {
+    width,
+    height,
+    getArea() {
+      return this.width * this.height;
+    },
+  };
 }
-
 
 /**
  * Returns the JSON representation of specified object
@@ -35,10 +39,9 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
-
 
 /**
  * Returns the object of specified type from JSON representation
@@ -51,10 +54,24 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  const props = JSON.parse(json);
+  return Object.create(
+    proto,
+    Object.keys(props).reduce(
+      (acc, k) => ({
+        ...acc,
+        [k]: {
+          value: props[k],
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        },
+      }),
+      {},
+    ),
+  );
 }
-
 
 /**
  * Css selectors builder
@@ -108,38 +125,233 @@ function fromJSON(/* proto, json */) {
  *    => 'div#main.container.draggable + table#data ~ tr:nth-of-type(even)   td:nth-of-type(even)'
  *
  *  For more examples see unit tests.
+ *    element#id.class[attr]:pseudoClass::pseudoElement
+ *              \----/\----/\----------/
+ *              Can be several occurrences
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  selector: '',
+  orderPremissions: {
+    elem: true,
+    id: true,
+    class: true,
+    attr: true,
+    pseudoClass: true,
+    pseudoElem: true,
+  },
+  element(value) {
+    if (!this.orderPremissions.elem) {
+      throw Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element',
+      );
+    }
+    if (this.selector.length) {
+      throw Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector',
+      );
+    }
+    return Object.create(cssSelectorBuilder, {
+      selector: {
+        value: `${this.selector}${value}`,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+      orderPremissions: {
+        value: {
+          elem: true,
+          id: true,
+          class: true,
+          attr: true,
+          pseudoClass: true,
+          pseudoElem: true,
+        },
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+    });
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    if (this.selector.includes('#')) {
+      throw Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector',
+      );
+    }
+    if (!this.orderPremissions.id) {
+      throw Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element',
+      );
+    }
+    return Object.create(cssSelectorBuilder, {
+      selector: {
+        value: `${this.selector}#${value}`,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+      orderPremissions: {
+        value: {
+          elem: false,
+          id: false,
+          class: true,
+          attr: true,
+          pseudoClass: true,
+          pseudoElem: true,
+        },
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+    });
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    if (!this.orderPremissions.class) {
+      throw Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element',
+      );
+    }
+    return Object.create(cssSelectorBuilder, {
+      selector: {
+        value: `${this.selector}.${value}`,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+      orderPremissions: {
+        value: {
+          elem: false,
+          id: false,
+          class: true,
+          attr: true,
+          pseudoClass: true,
+          pseudoElem: true,
+        },
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+    });
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    if (!this.orderPremissions.attr) {
+      throw Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element',
+      );
+    }
+    return Object.create(cssSelectorBuilder, {
+      selector: {
+        value: `${this.selector}[${value}]`,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+      orderPremissions: {
+        value: {
+          elem: false,
+          id: false,
+          class: false,
+          attr: true,
+          pseudoClass: true,
+          pseudoElem: true,
+        },
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+    });
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    if (!this.orderPremissions.pseudoClass) {
+      throw Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element',
+      );
+    }
+    return Object.create(cssSelectorBuilder, {
+      selector: {
+        value: `${this.selector}:${value}`,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+      orderPremissions: {
+        value: {
+          elem: false,
+          id: false,
+          class: false,
+          attr: false,
+          pseudoClass: true,
+          pseudoElem: true,
+        },
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+    });
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    if (this.selector.includes('::')) {
+      throw Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector',
+      );
+    }
+    if (!this.orderPremissions.pseudoElem) {
+      throw Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element',
+      );
+    }
+    return Object.create(cssSelectorBuilder, {
+      selector: {
+        value: `${this.selector}::${value}`,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+      orderPremissions: {
+        value: {
+          elem: false,
+          id: false,
+          class: false,
+          attr: false,
+          pseudoClass: false,
+          pseudoElem: false,
+        },
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+    });
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    return Object.create(cssSelectorBuilder, {
+      selector: {
+        value: `${
+          this.selector
+        }${selector1.stringify()} ${combinator} ${selector2.stringify()}`,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+      orderPremissions: {
+        value: selector2.orderPremissions,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      },
+    });
+  },
+
+  stringify() {
+    return this.selector;
   },
 };
-
 
 module.exports = {
   Rectangle,
